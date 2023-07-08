@@ -51,6 +51,15 @@ void lcd_send_char(char ch)
 		printf("Error no. %d in char %x\n", err, ch);	
 }
 
+void lcd_ser_curser(u_int8_t y, u_int8_t x)
+{
+	//First Line: Addresses 0x00 to 0x0F
+	//Second Line: Addresses 0x40 to 0x4F
+	u_int8_t ddram_addr = 0x40*y+x;
+	lcd_send_cmd(0x80 | ddram_addr);
+	usleep(40);
+}
+
 void scan_i2c() {
 	int ret;
 	uint8_t rx_data;
@@ -127,12 +136,18 @@ void app_main() {
 	lcd_init();
 
 	u_int8_t ch = 65; // 'A'
+	int count = 0;
 	while (1) {
 		lcd_send_char(ch++);
 		vTaskDelay(pdMS_TO_TICKS(1000));
 
+		if (count++ > 7) {
+			lcd_ser_curser(1,1); // no reason, just to test
+			count = 0;
+		}
+
 		if (ch>112) // 	'z'
-			ch = 65;	'A'
+			ch = 65;	//'A'
 	}
 	
 }

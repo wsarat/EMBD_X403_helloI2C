@@ -4,8 +4,6 @@
 #include "esp_log.h"
 #include "driver/i2c.h"
 
-static const char *TAG = "hello_i2c";
-
 #define TIMEOUT_MS		1000
 #define DELAY_MS		1000
 
@@ -17,7 +15,6 @@ static const char *TAG = "hello_i2c";
 
 //i2c bit		7	6	5	4	3	2	1	0
 //LCD pin		7	6	5	4	LED	E	R/W	RS
-
 void lcd_send_cmd(char cmd)
 {
 	esp_err_t err;
@@ -33,6 +30,25 @@ void lcd_send_cmd(char cmd)
 	err= i2c_master_write_to_device (I2C_PORT, I2C_ADDRESS, data_t, 4, 1000);
 	if (err != 0) 
 		printf("Error no. %d in command %x\n", err, cmd);
+}
+
+//i2c bit		7	6	5	4	3	2	1	0
+//LCD pin		7	6	5	4	LED	E	R/W	RS
+void lcd_send_char(char ch)
+{
+	esp_err_t err;
+	char data_u, data_l;
+	uint8_t data_t[4];
+	data_u = (ch&0xf0);
+	data_l = ((ch<<4)&0xf0);
+	data_t[0] = data_u|0x0D;  //en=1, rs=1, 0xD = b1101
+	data_t[1] = data_u|0x09;  //en=0, rs=1, 0x9 = b1001
+	data_t[2] = data_l|0x0D;  //en=1, rs=1, 0xD = b1101
+	data_t[3] = data_l|0x09;  //en=0, rs=1, 0x9 = b1001
+
+	err= i2c_master_write_to_device (I2C_PORT, I2C_ADDRESS, data_t, 4, 1000);
+	if (err != 0) 
+		printf("Error no. %d in char %x\n", err, ch);	
 }
 
 void scan_i2c() {
@@ -53,7 +69,6 @@ void scan_i2c() {
 	}
 	printf("\n");
 }
-
 
 void lcd_init (void)
 {
@@ -86,7 +101,6 @@ void lcd_init (void)
 	lcd_send_cmd (0x08); //Display on/off control --> D=0,C=0, B=0  ---> display off
 	usleep(1000);
 
-
 	lcd_send_cmd (0x01);  // clear display => 0x01
 	usleep(1000);
 	usleep(1000);
@@ -98,8 +112,6 @@ void lcd_init (void)
 }
 
 void app_main() {
-	uint8_t rx_data[5];
-
 	i2c_config_t conf = {
 		.mode = I2C_MODE_MASTER,
 		.sda_io_num = SDA_PIN,
@@ -114,8 +126,13 @@ void app_main() {
 	scan_i2c();
 	lcd_init();
 
+	u_int8_t ch = 65; // 'A'
 	while (1) {
+		lcd_send_char(ch++);
+		vTaskDelay(pdMS_TO_TICKS(1000));
 
+		if (ch>112) // 	'z'
+			ch = 65;	'A'
 	}
 	
 }

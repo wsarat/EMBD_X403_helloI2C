@@ -3,6 +3,7 @@
 #include <string.h>
 #include "esp_log.h"
 #include "driver/i2c.h"
+#include "ds18b20_lowlevel.h"
 
 #define TIMEOUT_MS		1000
 #define DELAY_MS		1000
@@ -49,6 +50,14 @@ void lcd_send_char(char ch)
 	err= i2c_master_write_to_device (I2C_PORT, I2C_ADDRESS, data_t, 4, 1000);
 	if (err != 0) 
 		printf("Error no. %d in char %x\n", err, ch);	
+}
+
+void lcd_send_buf(const char *ch, size_t size) 
+{
+	for (int i=0; i<size; i++)
+	{
+		lcd_send_char(*(ch+i));
+	}
 }
 
 void lcd_ser_curser(u_int8_t y, u_int8_t x)
@@ -135,19 +144,22 @@ void app_main() {
 	scan_i2c();
 	lcd_init();
 
-	u_int8_t ch = 65; // 'A'
-	int count = 0;
+	ds18b20_init(GPIO_NUM_9);
+
+	float tempC;
+	char chBuf[17];
+
+	lcd_ser_curser(0,0);
+	snprintf(chBuf, 17, "i2c -> LCD1602");
+	lcd_send_buf(chBuf, strlen(chBuf));	
+
 	while (1) {
-		lcd_send_char(ch++);
-		vTaskDelay(pdMS_TO_TICKS(1000));
-
-		if (count++ > 7) {
-			lcd_ser_curser(1,1); // no reason, just to test
-			count = 0;
-		}
-
-		if (ch>112) // 	'z'
-			ch = 65;	//'A'
+		tempC = ds18b20_cmd_read_temp();
+		lcd_ser_curser(1,0);
+		snprintf(chBuf, 17, "DS18B20: %.02f C", tempC);
+		lcd_send_buf(chBuf, strlen(chBuf));
+		
+		vTaskDelay(pdMS_TO_TICKS(500));
 	}
 	
 }

@@ -144,7 +144,7 @@ void app_main() {
 	scan_i2c();
 	lcd_init();
 
-	ds18b20_init(GPIO_NUM_9);
+	ds18b20_init(GPIO_NUM_12);
 
 	float tempC;
 	char chBuf[17];
